@@ -19,8 +19,12 @@
 
 package io.temporal.samples.tracing.workflow;
 
-import io.temporal.workflow.ChildWorkflowOptions;
+import io.temporal.activity.ActivityOptions;
+import io.temporal.samples.tracing.TestContextPropagator;
 import io.temporal.workflow.Workflow;
+import java.time.Duration;
+import java.util.Collections;
+import org.slf4j.MDC;
 
 public class TracingWorkflowImpl implements TracingWorkflow {
 
@@ -28,14 +32,18 @@ public class TracingWorkflowImpl implements TracingWorkflow {
 
   @Override
   public String greet(String name) {
-    ChildWorkflowOptions options =
-        ChildWorkflowOptions.newBuilder().setWorkflowId("tracingChildWorkflow").build();
 
-    // Get the child workflow stub
-    TracingChildWorkflow child = Workflow.newChildWorkflowStub(TracingChildWorkflow.class, options);
+    System.out.println("Worker MDC context map: " + MDC.getCopyOfContextMap());
 
-    // Invoke child sync and return its result
-    return child.greet(name, language);
+    ActivityOptions activityOptions =
+        ActivityOptions.newBuilder()
+            .setStartToCloseTimeout(Duration.ofSeconds(2))
+            .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
+            .build();
+    TracingActivities activities =
+        Workflow.newActivityStub(TracingActivities.class, activityOptions);
+
+    return activities.greet(name, language);
   }
 
   @Override

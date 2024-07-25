@@ -19,9 +19,13 @@
 
 package io.temporal.samples.tracing.workflow;
 
+import org.slf4j.MDC;
+
 public class TracingActivitiesImpl implements TracingActivities {
   @Override
   public String greet(String name, String language) {
+
+    System.out.println("Activity MDC context map: " + MDC.getCopyOfContextMap());
     String greeting;
 
     switch (language) {

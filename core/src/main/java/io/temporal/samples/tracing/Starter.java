@@ -22,25 +22,21 @@ package io.temporal.samples.tracing;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowClientOptions;
 import io.temporal.client.WorkflowOptions;
-import io.temporal.client.WorkflowStub;
-import io.temporal.opentracing.OpenTracingClientInterceptor;
 import io.temporal.samples.tracing.workflow.TracingWorkflow;
 import io.temporal.serviceclient.WorkflowServiceStubs;
+import java.util.Collections;
+import org.slf4j.MDC;
 
 public class Starter {
   public static final WorkflowServiceStubs service = WorkflowServiceStubs.newLocalServiceStubs();
   public static final String TASK_QUEUE_NAME = "tracingTaskQueue";
 
-  public static void main(String[] args) {
-    String type = "OpenTelemetry";
-    if (args.length == 1) {
-      type = args[0];
-    }
+  public static void main(String[] args) throws InterruptedException {
 
-    // Set the OpenTracing client interceptor
+    MDC.put("test", "testing123");
     WorkflowClientOptions clientOptions =
         WorkflowClientOptions.newBuilder()
-            .setInterceptors(new OpenTracingClientInterceptor(JaegerUtils.getJaegerOptions(type)))
+            .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
             .build();
     WorkflowClient client = WorkflowClient.newInstance(service, clientOptions);
 
@@ -53,13 +49,10 @@ public class Starter {
     // Create typed workflow stub
     TracingWorkflow workflow = client.newWorkflowStub(TracingWorkflow.class, workflowOptions);
 
-    // Convert to untyped and start it with signalWithStart
-    WorkflowStub untyped = WorkflowStub.fromTyped(workflow);
-    untyped.signalWithStart("setLanguage", new Object[] {"Spanish"}, new Object[] {"John"});
-
-    String greeting = untyped.getResult(String.class);
+    String greeting = workflow.greet("Hello");
 
     System.out.println("Greeting: " + greeting);
+    Thread.sleep(10000);
 
     System.exit(0);
   }
